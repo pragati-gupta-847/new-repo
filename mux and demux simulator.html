@@ -1,0 +1,469 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8:1 MUX and 1:8 DEMUX Simulator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    margin: 0;
+    padding: 20px;
+    color: #172033;
+}
+
+h1 {
+    text-align: center;
+    color: #173b70;
+}
+
+h2 {
+    color: #173b70;
+    text-align: center;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.circuit {
+    background: white;
+    padding: 25px;
+    margin: 25px auto;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px #00000015;
+}
+
+.switches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.switch-box {
+    text-align: center;
+    padding: 12px;
+    background: #f1f5fa;
+    border-radius: 8px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 7px;
+    background: #64748b;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+button.on {
+    background: #16a34a;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+.output {
+    text-align: center;
+    margin: 20px auto;
+    padding: 20px;
+    background: #e0f2fe;
+    border-radius: 10px;
+    max-width: 250px;
+}
+
+.value {
+    font-size: 30px;
+    font-weight: bold;
+    color: #075985;
+}
+
+.select-section {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.result {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 15px;
+    color: #166534;
+}
+
+.output-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.output-box {
+    text-align: center;
+    background: #f1f5f9;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.output-box.active {
+    background: #bbf7d0;
+    border: 2px solid #16a34a;
+}
+
+.small-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.reset {
+    display: block;
+    margin: 20px auto 0;
+    background: #dc2626;
+}
+
+@media(max-width: 500px) {
+    .switches, .output-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .circuit {
+        padding: 15px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Digital Logic Circuit Simulator</h1>
+<p style="text-align:center">
+    8:1 Multiplexer and 1:8 Demultiplexer
+</p>
+
+<!-- MUX SECTION -->
+
+<div class="circuit">
+
+<h2>8:1 Multiplexer (MUX)</h2>
+
+<p>
+A multiplexer selects one of eight inputs using
+three select lines and sends it to a single output.
+</p>
+
+<h3>1. Input Data (I0 - I7)</h3>
+
+<div class="switches" id="muxInputs"></div>
+
+<div class="select-section">
+
+<h3>2. Select Lines</h3>
+
+<div class="switches" id="muxSelects"></div>
+
+</div>
+
+<div class="output">
+
+<h3>Selected Output (Y)</h3>
+<div class="value" id="muxOutput">0</div>
+<p id="muxSelected">Selected Input: I0</p>
+
+</div>
+
+<div class="result" id="muxStatus">
+MUX Ready
+</div>
+
+<button class="reset" onclick="resetMUX()">
+Reset MUX
+</button>
+
+</div>
+
+
+<!-- DEMUX SECTION -->
+
+<div class="circuit">
+
+<h2>1:8 Demultiplexer (DEMUX)</h2>
+
+<p>
+A demultiplexer takes one input and sends it
+to one of eight outputs using three select lines.
+</p>
+
+<h3>1. Data Input (D)</h3>
+
+<div class="switches">
+    <div class="switch-box">
+        <label>Input D</label>
+        <button id="demuxInput" onclick="toggleDEMUXInput()">
+            OFF (0)
+        </button>
+    </div>
+</div>
+
+<div class="select-section">
+
+<h3>2. Select Lines</h3>
+
+<div class="switches" id="demuxSelects"></div>
+
+</div>
+
+<h3 style="text-align:center">3. Output Lines</h3>
+
+<div class="output-grid" id="demuxOutputs"></div>
+
+<div class="result" id="demuxStatus">
+DEMUX Ready
+</div>
+
+<button class="reset" onclick="resetDEMUX()">
+Reset DEMUX
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+// CREATE SWITCHES
+
+let muxData = Array(8).fill(0);
+let muxSelect = Array(3).fill(0);
+
+let demuxData = 0;
+let demuxSelect = Array(3).fill(0);
+
+
+// CREATE MUX INPUT SWITCHES
+
+function createSwitches(container, prefix, count, type) {
+
+    const area = document.getElementById(container);
+    area.innerHTML = "";
+
+    for (let i = 0; i < count; i++) {
+
+        const box = document.createElement("div");
+        box.className = "switch-box";
+
+        box.innerHTML = `
+            <label>${prefix}${i}</label>
+            <button id="${type}${i}"
+            onclick="toggleSwitch('${type}',${i})">
+            OFF (0)
+            </button>
+        `;
+
+        area.appendChild(box);
+    }
+}
+
+
+// CREATE DEMUX OUTPUTS
+
+function createOutputs() {
+
+    const area = document.getElementById("demuxOutputs");
+    area.innerHTML = "";
+
+    for (let i = 0; i < 8; i++) {
+
+        area.innerHTML += `
+            <div class="output-box" id="outBox${i}">
+                <label>O${i}</label>
+                <div class="small-value" id="out${i}">0</div>
+            </div>
+        `;
+    }
+}
+
+
+// TOGGLE SWITCHES
+
+function toggleSwitch(type, index) {
+
+    if (type === "mux") {
+
+        muxData[index] = 1 - muxData[index];
+
+        updateButton("mux" + index, muxData[index]);
+
+        updateMUX();
+    }
+
+    if (type === "muxSelect") {
+
+        muxSelect[index] = 1 - muxSelect[index];
+
+        updateButton("muxSelect" + index, muxSelect[index]);
+
+        updateMUX();
+    }
+
+    if (type === "demuxSelect") {
+
+        demuxSelect[index] = 1 - demuxSelect[index];
+
+        updateButton("demuxSelect" + index, demuxSelect[index]);
+
+        updateDEMUX();
+    }
+}
+
+
+// UPDATE BUTTON APPEARANCE
+
+function updateButton(id, value) {
+
+    const btn = document.getElementById(id);
+
+    btn.innerText = value ? "ON (1)" : "OFF (0)";
+
+    btn.classList.toggle("on", value === 1);
+}
+
+
+// GET SELECTED INPUT INDEX
+
+function getIndex(select) {
+
+    return select[0] * 4 +
+           select[1] * 2 +
+           select[2];
+}
+
+
+// MUX LOGIC
+
+function updateMUX() {
+
+    const index = getIndex(muxSelect);
+
+    const output = muxData[index];
+
+    document.getElementById("muxOutput").innerText = output;
+
+    document.getElementById("muxSelected").innerText =
+        "Selected Input: I" + index;
+
+    document.getElementById("muxStatus").innerText =
+        "S2 S1 S0 = " + muxSelect.join(" ") +
+        " | I" + index + " → Y = " + output;
+}
+
+
+// DEMUX INPUT SWITCH
+
+function toggleDEMUXInput() {
+
+    demuxData = 1 - demuxData;
+
+    updateButton("demuxInput", demuxData);
+
+    updateDEMUX();
+}
+
+
+// DEMUX LOGIC
+
+function updateDEMUX() {
+
+    const index = getIndex(demuxSelect);
+
+    for (let i = 0; i < 8; i++) {
+
+        const output = (demuxData === 1 && i === index) ? 1 : 0;
+
+        document.getElementById("out" + i).innerText = output;
+
+        document.getElementById("outBox" + i)
+            .classList.toggle("active", output === 1);
+    }
+
+    document.getElementById("demuxStatus").innerText =
+        "Selected Output: O" + index +
+        " | D = " + demuxData +
+        " | O" + index + " = " +
+        demuxData;
+}
+
+
+// RESET MUX
+
+function resetMUX() {
+
+    muxData.fill(0);
+    muxSelect.fill(0);
+
+    for (let i = 0; i < 8; i++) {
+        updateButton("mux" + i, 0);
+    }
+
+    for (let i = 0; i < 3; i++) {
+        updateButton("muxSelect" + i, 0);
+    }
+
+    updateMUX();
+}
+
+
+// RESET DEMUX
+
+function resetDEMUX() {
+
+    demuxData = 0;
+    demuxSelect.fill(0);
+
+    updateButton("demuxInput", 0);
+
+    for (let i = 0; i < 3; i++) {
+        updateButton("demuxSelect" + i, 0);
+    }
+
+    updateDEMUX();
+}
+
+
+// INITIALIZE SIMULATOR
+
+createSwitches("muxInputs", "I", 8, "mux");
+
+createSwitches("muxSelects", "S", 3, "muxSelect");
+
+createSwitches("demuxSelects", "S", 3, "demuxSelect");
+
+createOutputs();
+
+updateMUX();
+updateDEMUX();
+
+</script>
+
+</body>
+</html>
